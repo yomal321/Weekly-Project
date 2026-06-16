@@ -1,0 +1,58 @@
+{
+  "tickets": [
+    {
+      "id": "1",
+      "title": "Client portal login broken for all users",
+      "description": "Multiple clients reported they cannot log in since this morning. Affects all accounts. Revenue impact likely.",
+      "source": "Email",
+      "dateReceived": "2026-06-16",
+      "priority": "Critical",
+      "status": "Open"
+    },
+    {
+      "id": "2",
+      "title": "Monthly invoice report missing June data",
+      "description": "Finance team says the June report is empty. They need it before the 5pm deadline today.",
+      "source": "Slack",
+      "dateReceived": "2026-06-16",
+      "priority": "High",
+      "status": "Open"
+    },
+    {
+      "id": "3",
+      "title": "Update staff directory with new hires",
+      "description": "Three new employees joined this month. HR requested their profiles be added to the internal directory.",
+      "source": "Email",
+      "dateReceived": "2026-06-15",
+      "priority": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "4",
+      "title": "Database backup job failed overnight",
+      "description": "Scheduled backup at 2am did not complete. Backup team is investigating but PMO needs to track.",
+      "source": "Spreadsheet",
+      "dateReceived": "2026-06-16",
+      "priority": "Critical",
+      "status": "Open"
+    },
+    {
+      "id": "5",
+      "title": "Office printer on Level 3 is offline",
+      "description": "Staff on Level 3 cannot print. IT has been notified but no ETA yet.",
+      "source": "Slack",
+      "dateReceived": "2026-06-14",
+      "priority": "Low",
+      "status": "Resolved"
+    },
+    {
+      "title": "testing",
+      "description": "kkkk",
+      "source": "Email",
+      "priority": "High",
+      "dateReceived": "2026-06-16",
+      "status": "Open",
+      "id": "13Rxvrs"
+    }
+  ]
+}
