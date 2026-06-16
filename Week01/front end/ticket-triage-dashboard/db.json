@@ -16,7 +16,7 @@
       "source": "Slack",
       "dateReceived": "2026-06-16",
       "priority": "High",
-      "status": "Open"
+      "status": "Resolved"
     },
     {
       "id": "3",
@@ -34,7 +34,7 @@
       "source": "Spreadsheet",
       "dateReceived": "2026-06-16",
       "priority": "Critical",
-      "status": "Open"
+      "status": "Resolved"
     },
     {
       "id": "5",
@@ -51,7 +51,7 @@
       "source": "Email",
       "priority": "High",
       "dateReceived": "2026-06-16",
-      "status": "Open",
+      "status": "Resolved",
       "id": "13Rxvrs"
     }
   ]
