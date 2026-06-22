@@ -1,0 +1,265 @@
+meta:
+  project: BISTEC PMO Ticket Triage Dashboard
+  version: 2.0
+  author: Yomal
+  date: 2026-06-09
+  stack:
+    frontend: Next.js 15 App Router
+    language: TypeScript (strict, zero any)
+    orm: Prisma
+    database: SQLite
+    styling: Tailwind CSS
+    validation: Zod
+    testing: Vitest
+
+# ─────────────────────────────────────────────
+# PRIORITY LABELS
+# P0 = Critical (red)
+# P1 = High (amber)
+# P2 = Low (green)
+# ─────────────────────────────────────────────
+
+tasks:
+
+  # ── LAYER 1: FOUNDATION ──────────────────────
+
+  - id: ST-01
+    title: Project Scaffold
+    layer: foundation
+    estimate: 15min
+    depends_on: []
+    commands:
+      - npx create-next-app@latest ticket-triage --typescript --app --tailwind --eslint --src-dir --no-import-alias
+      - cd ticket-triage
+      - npm install prisma @prisma/client zod
+      - npm install -D vitest @vitejs/plugin-react
+      - npx prisma init --datasource-provider sqlite
+    acceptance_criteria:
+      - given: dependencies installed
+        when: npm run dev
+        then: Next.js starts on localhost:3000 without errors
+
+  # ── LAYER 2: DATA ────────────────────────────
+
+  - id: ST-02
+    title: Prisma Schema + Migration
+    layer: data
+    estimate: 20min
+    depends_on: [ST-01]
+    file: prisma/schema.prisma
+    schema:
+      model: Ticket
+      fields:
+        - id:          Int       | @id @default(autoincrement())
+        - title:       String
+        - description: String?
+        - source:      String?
+        - priority:    String    | P0 | P1 | P2
+        - resolved:    Boolean   | @default(false)
+        - createdAt:   DateTime  | @default(now())
+        - updatedAt:   DateTime  | @updatedAt
+    commands:
+      - npx prisma migrate dev --name init
+    acceptance_criteria:
+      - given: schema is defined
+        when: npx prisma migrate dev
+        then: migration runs clean, dev.db created in prisma/
+
+  - id: ST-03
+    title: Prisma Client Singleton
+    layer: data
+    estimate: 10min
+    depends_on: [ST-02]
+    file: src/lib/db.ts
+    acceptance_criteria:
+      - given: db.ts exists
+        when: imported in any API route
+        then: returns single shared PrismaClient, no duplicate warnings
+
+  - id: ST-04
+    title: Seed Data
+    layer: data
+    estimate: 10min
+    depends_on: [ST-02]
+    file: prisma/seed.ts
+    sample_tickets:
+      - { title: "Login page broken",          priority: P0, resolved: false }
+      - { title: "API returns 500 on export",  priority: P0, resolved: false }
+      - { title: "Dashboard loads slowly",     priority: P1, resolved: false }
+      - { title: "Email notifications delayed",priority: P1, resolved: false }
+      - { title: "Wrong label on settings",    priority: P2, resolved: false }
+      - { title: "Footer link is broken",      priority: P2, resolved: true  }
+    commands:
+      - npx prisma db seed
+    acceptance_criteria:
+      - given: seed.ts exists and is registered in package.json
+        when: npx prisma db seed
+        then: 6 tickets inserted without errors
+
+  # ── LAYER 3: API ─────────────────────────────
+
+  - id: ST-05
+    title: "API: GET /api/tickets"
+    layer: api
+    estimate: 20min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/route.ts
+    description: Returns all unresolved tickets sorted P0 → P1 → P2
+    acceptance_criteria:
+      - given: unresolved tickets exist
+        when: GET /api/tickets
+        then: 200 JSON array sorted P0 first
+      - given: no tickets exist
+        when: GET /api/tickets
+        then: 200 empty array
+
+  - id: ST-06
+    title: "API: POST /api/tickets"
+    layer: api
+    estimate: 20min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/route.ts
+    validation_zod:
+      - title:    string, required
+      - priority: enum(P0, P1, P2), required
+      - description: string, optional
+      - source:   string, optional
+    acceptance_criteria:
+      - given: valid payload with title and priority
+        when: POST /api/tickets
+        then: 201 with created ticket JSON
+      - given: missing title
+        when: POST /api/tickets
+        then: 400 with Zod validation error
+      - given: invalid priority value
+        when: POST /api/tickets
+        then: 400 with Zod validation error
+
+  - id: ST-07
+    title: "API: PATCH /api/tickets/:id"
+    layer: api
+    estimate: 15min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/[id]/route.ts
+    description: Update priority or resolve a ticket — single PATCH endpoint
+    validation_zod:
+      - priority: enum(P0, P1, P2), optional
+      - resolved: boolean, optional
+    acceptance_criteria:
+      - given: ticket id 1 exists
+        when: PATCH /api/tickets/1 with { priority "P2" }
+        then: 200 with updated ticket
+      - given: ticket id 1 exists
+        when: PATCH /api/tickets/1 with { resolved true }
+        then: 200, ticket gone from GET /api/tickets
+      - given: invalid priority sent
+        when: PATCH /api/tickets/1 with { priority "Urgent" }
+        then: 400 Zod validation error
+
+  - id: ST-08
+    title: "API: GET /api/tickets/resolved"
+    layer: api
+    estimate: 15min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/resolved/route.ts
+    acceptance_criteria:
+      - given: resolved tickets exist
+        when: GET /api/tickets/resolved
+        then: 200 JSON array of resolved tickets only
+      - given: none resolved
+        when: GET /api/tickets/resolved
+        then: 200 empty array
+
+  # ── LAYER 4: FRONTEND ────────────────────────
+
+  - id: ST-09
+    title: Dashboard — Ticket List
+    layer: frontend
+    estimate: 25min
+    depends_on: [ST-05]
+    file: src/app/tickets/page.tsx
+    priority_badge_colours:
+      P0: red
+      P1: amber
+      P2: green
+    ticket_card_shows:
+      - title
+      - description
+      - source
+      - createdAt date
+      - priority badge (coloured)
+    acceptance_criteria:
+      - given: tickets exist and dashboard is open
+        when: page loads
+        then: all unresolved tickets shown, P0 at top
+      - given: page loaded
+        when: ticket card rendered
+        then: shows title, description, source, date, coloured priority badge
+
+  - id: ST-10
+    title: Add Ticket Form
+    layer: frontend
+    estimate: 25min
+    depends_on: [ST-06, ST-09]
+    file: src/app/tickets/page.tsx
+    form_fields:
+      - title:       text input, required
+      - description: textarea, optional
+      - source:      text input, optional
+      - priority:    select (P0 / P1 / P2), required
+    acceptance_criteria:
+      - given: form filled with title and priority
+        when: submit clicked
+        then: new ticket appears in correct position immediately, no page reload
+      - given: form submitted with no title
+        when: submit clicked
+        then: inline error shown, form not submitted
+
+  - id: ST-11
+    title: Priority Filter
+    layer: frontend
+    estimate: 20min
+    depends_on: [ST-09]
+    file: src/app/tickets/page.tsx
+    filter_buttons: [All, P0, P1, P2]
+    description: Client-side filtering, no extra API call
+    acceptance_criteria:
+      - given: multiple priority tickets visible
+        when: P1 filter clicked
+        then: only P1 tickets shown
+      - given: filter is active
+        when: All clicked
+        then: all unresolved tickets shown again
+
+  - id: ST-12
+    title: Resolve Ticket + Show Resolved Toggle
+    layer: frontend
+    estimate: 25min
+    depends_on: [ST-07, ST-08, ST-09]
+    file: src/app/tickets/page.tsx
+    acceptance_criteria:
+      - given: open ticket visible
+        when: Resolve clicked
+        then: ticket disappears immediately, no page reload
+      - given: resolved tickets exist
+        when: Show Resolved toggled on
+        then: resolved tickets appear at bottom, greyed out, visually distinct
+
+  # ── LAYER 5: CI ──────────────────────────────
+
+  - id: ST-13
+    title: GitHub Actions CI Pipeline
+    layer: ci
+    estimate: 20min
+    depends_on: [ST-09, ST-10, ST-11, ST-12]
+    file: .github/workflows/ci.yml
+    checks:
+      - lint:      ESLint strict, 0 errors
+      - typecheck: tsc --noEmit, 0 errors
+      - test:      Vitest, >= 1 passing
+      - build:     next build, exits 0
+    target: all checks pass in under 3 minutes
+    acceptance_criteria:
+      - given: code pushed to main
+        when: CI runs
+        then: lint, typecheck, test, build all green in under 3 min
