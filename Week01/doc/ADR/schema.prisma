@@ -1,0 +1,44 @@
+// Prisma Schema — BISTEC PMO Ticket Triage Dashboard
+// ADR-002: SQLite as the database for v1 (lightweight, no separate server needed)
+// Run: npx prisma migrate dev --name init
+// Run: npx prisma db seed
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Ticket model — matches PRD entities exactly
+// FR: Each ticket must display title, description, source, date received, priority, resolved status
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+
+  // FR: title is required — POST /api/tickets returns 400 if missing
+  title       String
+
+  // FR: description is optional
+  description String?
+
+  // FR: source of the ticket (email, Slack, manual entry)
+  source      String?
+
+  // FR: priority must be Critical | High | Low
+  // Sort order: Critical = 1, High = 2, Low = 3
+  priority    String
+
+  // FR: resolved status — hidden from default view when true
+  // AC-04: marks ticket as resolved
+  // AC-05: visible via Show Resolved filter
+  resolved    Boolean  @default(false)
+
+  // FR: date received — shown on each ticket card
+  createdAt   DateTime @default(now())
+
+  // updatedAt tracks when priority or resolved status last changed
+  updatedAt   DateTime @updatedAt
+}

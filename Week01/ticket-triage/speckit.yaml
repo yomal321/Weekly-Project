@@ -1,0 +1,142 @@
+meta:
+  project: BISTEC PMO Ticket Triage Dashboard
+  version: 2.0
+  author: Yomal
+  date: 2026-06-22
+  stack:
+    framework: Next.js 15 App Router
+    language: TypeScript (strict)
+    orm: Prisma
+    database: SQLite
+    styling: Tailwind CSS
+    validation: Zod
+
+tasks:
+  - id: ST-01
+    title: Project Scaffold
+    layer: foundation
+    estimate: 15min
+    commands:
+      - npx create-next-app@latest ticket-triage --typescript --app --tailwind --eslint --src-dir --no-import-alias
+      - cd ticket-triage && npm install prisma @prisma/client zod
+      - npm install -D vitest @vitejs/plugin-react
+      - npx prisma init --datasource-provider sqlite
+    acceptance_criteria:
+      - npm run dev starts on localhost:3000 without errors
+      - npx prisma --version prints version
+
+  - id: ST-02
+    title: Prisma Schema
+    layer: data
+    estimate: 10min
+    depends_on: [ST-01]
+    description: Define Ticket model with P0/P1/P2 priority in prisma/schema.prisma
+    acceptance_criteria:
+      - npx prisma migrate dev --name init runs clean
+      - dev.db created in prisma/
+
+  - id: ST-03
+    title: Prisma Client Singleton
+    layer: data
+    estimate: 5min
+    depends_on: [ST-02]
+    file: src/lib/db.ts
+    acceptance_criteria:
+      - Single PrismaClient instance across all API routes
+
+  - id: ST-04
+    title: Seed Data
+    layer: data
+    estimate: 10min
+    depends_on: [ST-02]
+    file: prisma/seed.ts
+    acceptance_criteria:
+      - npx prisma db seed inserts 6 tickets covering P0/P1/P2
+
+  - id: ST-05
+    title: "API: GET /api/tickets"
+    layer: api
+    estimate: 15min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/route.ts
+    acceptance_criteria:
+      - Returns 200 with unresolved tickets sorted P0 first
+      - Returns 200 with empty array when no tickets
+
+  - id: ST-06
+    title: "API: POST /api/tickets"
+    layer: api
+    estimate: 15min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/route.ts
+    acceptance_criteria:
+      - Returns 201 with created ticket on valid payload
+      - Returns 400 if title missing
+      - Returns 400 if priority not P0/P1/P2
+
+  - id: ST-07
+    title: "API: PATCH /api/tickets/[id]/priority"
+    layer: api
+    estimate: 10min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/[id]/priority/route.ts
+    acceptance_criteria:
+      - Returns 200 with updated ticket
+      - Returns 400 for invalid priority
+
+  - id: ST-08
+    title: "API: PATCH /api/tickets/[id]/resolve"
+    layer: api
+    estimate: 10min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/[id]/resolve/route.ts
+    acceptance_criteria:
+      - Returns 200, ticket excluded from GET /api/tickets
+      - Idempotent
+
+  - id: ST-09
+    title: "API: GET /api/tickets/resolved"
+    layer: api
+    estimate: 10min
+    depends_on: [ST-03]
+    file: src/app/api/tickets/resolved/route.ts
+    acceptance_criteria:
+      - Returns 200 with resolved tickets
+      - Returns 200 with empty array when none
+
+  - id: ST-10
+    title: Dashboard Page — Ticket List
+    layer: frontend
+    estimate: 25min
+    depends_on: [ST-05]
+    file: src/app/tickets/page.tsx
+    acceptance_criteria:
+      - All unresolved tickets displayed P0 first on load
+      - Each card shows title, description, source, date, priority badge
+
+  - id: ST-11
+    title: Add Ticket Form
+    layer: frontend
+    estimate: 20min
+    depends_on: [ST-06, ST-10]
+    acceptance_criteria:
+      - New ticket appears in correct position after submit
+      - Inline error shown if title missing
+
+  - id: ST-12
+    title: Priority Filter
+    layer: frontend
+    estimate: 15min
+    depends_on: [ST-10]
+    acceptance_criteria:
+      - Clicking P0 shows only P0 tickets
+      - Clicking All restores full list
+
+  - id: ST-13
+    title: Resolve + Show Resolved Toggle
+    layer: frontend
+    estimate: 20min
+    depends_on: [ST-08, ST-09, ST-10]
+    acceptance_criteria:
+      - Resolve button removes ticket from list immediately
+      - Show Resolved toggle displays resolved tickets greyed out at bottom
