@@ -27,12 +27,6 @@ const BORDER_CLASS: Record<Priority, string> = {
   P2: "border-l-green-400",
 };
 
-const PRIORITY_LABEL: Record<Priority, string> = {
-  P0: "P0 — Critical",
-  P1: "P1 — High",
-  P2: "P2 — Low",
-};
-
 const FILTERS: Filter[] = ["All", "P0", "P1", "P2"];
 
 const EMPTY_FORM = { title: "", description: "", source: "", priority: "P1" as Priority };
@@ -61,6 +55,9 @@ export default function Dashboard() {
     setResolved((await res.json()) as Ticket[]);
   }, []);
 
+  // Initial data fetch on mount — not a derived-state update, so the
+  // set-state-in-effect rule's cascading-render concern doesn't apply here.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void fetchTickets(); }, [fetchTickets]);
 
   async function handleSubmit() {
